@@ -10,7 +10,7 @@ import (
 
 const (
 	dbDriver = "postgres"
-	dbSource = "postgresql://root:123456@localhost:15432/simple_bank?sslmode=disable"
+	dbSource = "postgresql://root:123456@localhost:5432/simple_bank?sslmode=disable"
 )
 
 // Queries 对象是用于操作db的句柄， 可对*sql.DB对象使用New方法得到
