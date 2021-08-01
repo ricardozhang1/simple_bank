@@ -7,6 +7,7 @@ packages:
     engine: "postgresql"
     emit_json_tags: true
     emit_prepared_queries: false  # 是否优化查询性能
-    emit_interface: false  # 为生成的包生成查询器接口
+    emit_interface: true  # 为生成的包生成查询器接口
     emit_exact_table_names: false
+    emit_empty_slices: true
 
