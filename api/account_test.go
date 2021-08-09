@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/golang/mock/gomock"
@@ -19,35 +20,87 @@ func TestAccountAPI(t *testing.T) {
 	// 返回一个用户账户
 	account := randomAccount()
 
-	//testCases := []struct{
-	//
-	//}
+	testCases := []struct{
+		name string
+		accountID int64
+		buildStubs func(store *mockdb.MockStore)
+	}{
+		{
+			name: "OK",
+			accountID: account.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetAccount(gomock.Any(), gomock.Eq(account.ID)).
+					Times(1).
+					Return(account, nil)
+			},
+		},
+		{
+			name: "NotFound",
+			accountID: account.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetAccount(gomock.Any(), gomock.Eq(account.ID)).
+					Times(1).
+					Return(db.Account{}, sql.ErrNoRows)
+			},
+		},
+		{
+			name: "InternalError",
+			accountID: account.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetAccount(gomock.Any(), gomock.Eq(account.ID)).
+					Times(1).
+					Return(db.Account{}, sql.ErrConnDone)
+			},
+		},
+		{
+			name: "InvalidID",
+			accountID: 0,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetAccount(gomock.Any(), gomock.Eq(account.ID)).
+					Times(1)
+			},
+		},
+	}
 
-	// 生成一个gomock的controlor
-	ctrl := gomock.NewController(t)
-	// 关闭controlor
-	defer ctrl.Finish()
+	for i := range testCases {
+		tc := testCases[i]
 
-	// 生成一个MockStore对象
-	store := mockdb.NewMockStore(ctrl)
-	// build stubs
-	store.EXPECT().  // 返回的是一个MockStoreMockRecorder
-		GetAccount(gomock.Any(), gomock.Eq(account.ID)).
-		Times(1).
-		Return(account, nil)
-	// start test server and request
-	server := newTestServer(t, store)
-	recorder := httptest.NewRecorder()
+		t.Run(tc.name, func(t *testing.T) {
+			// 生成一个gomock的controlor
+			ctrl := gomock.NewController(t)
+			// 关闭controlor
+			defer ctrl.Finish()
 
-	url := fmt.Sprintf("/accounts/%d", account.ID)
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	require.NoError(t, err)
+			// 生成一个MockStore对象
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
 
-	server.router.ServeHTTP(recorder, request)
-	// check response
-	require.Equal(t, http.StatusOK, recorder.Code)
-	requireBodyMatchAccount(t, recorder.Body, account)
+			// start test server and request and recorder.
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/accounts/%d", account.ID)
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			// check response
+			require.Equal(t, http.StatusOK, recorder.Code)
+			requireBodyMatchAccount(t, recorder.Body, account)
+		})
+	}
 }
+
+// TODO: TestCreateAccountAPI 完成登陆模块后完成
+//func TestCreateAccountAPI(t *testing.T) {
+//	account := randomAccount()
+//
+//}
+
 
 func randomAccount() db.Account {
 	return db.Account{

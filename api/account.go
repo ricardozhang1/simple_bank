@@ -27,7 +27,7 @@ func (server *Server) createAccount(ctx *gin.Context) {
 		Balance: 0,
 		Currency: req.Currency,
 	}
-	// 调用db包的方法，进行数据库查询
+	// 调用db包的方法，数据库插入数据
 	account, err := server.store.CreateAccount(ctx, arg)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -36,6 +36,7 @@ func (server *Server) createAccount(ctx *gin.Context) {
 				ctx.JSON(http.StatusForbidden, errorResponse(err))
 				return
 			}
+			// 用于检验数据库外键 唯一值的情况
 			log.Println(pqErr.Code.Name())
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))

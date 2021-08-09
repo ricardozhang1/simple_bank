@@ -31,6 +31,7 @@ func NewServer(store db.Store) *Server {
 	router.GET("/accounts/:id", server.getAccount)
 	router.GET("/accounts", server.listAccount)
 	router.POST("/transfers", server.createTransfer)
+	router.POST("/users", server.createUser)
 
 	server.router = router
 	return server
@@ -41,6 +42,7 @@ func (server *Server) Start(address string) error {
 	return server.router.Run(address)
 }
 
+// errorResponse 统一处理错误信息返回的格式，方便阅读，简化代码
 func errorResponse(err error) gin.H {
 	return gin.H{"message": err.Error()}
 }

@@ -9,9 +9,12 @@ import (
 )
 
 func createRandomUser(t *testing.T) User {
+	hashPassword, err := util.HashPassword(util.RandomString(6))
+	require.NoError(t, err)
+
 	arg := CreateUserParams{
 		Username: 		util.RandomOwnerName(),
-		HashedPassword: "secret",
+		HashedPassword: hashPassword,
 		FullName: 		util.RandomFullName(),	// RandomOwner 一致
 		Email: 			util.RandomEmail(),
 	}
@@ -20,6 +23,7 @@ func createRandomUser(t *testing.T) User {
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
+	// 对插入数据后返回的数据与传入的参数进行check
 	require.Equal(t, arg.Username, user.Username)
 	require.Equal(t, arg.HashedPassword, user.HashedPassword)
 	require.Equal(t, arg.FullName, user.FullName)
