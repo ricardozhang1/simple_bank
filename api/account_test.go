@@ -24,9 +24,10 @@ func TestAccountAPI(t *testing.T) {
 		name string
 		accountID int64
 		buildStubs func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name: "OK",
+			name: "OK",  // 200
 			accountID: account.ID,
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -34,9 +35,13 @@ func TestAccountAPI(t *testing.T) {
 					Times(1).
 					Return(account, nil)
 			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchAccount(t, recorder.Body, account)
+			},
 		},
 		{
-			name: "NotFound",
+			name: "NotFound",  // 404
 			accountID: account.ID,
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -44,9 +49,12 @@ func TestAccountAPI(t *testing.T) {
 					Times(1).
 					Return(db.Account{}, sql.ErrNoRows)
 			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
 		},
 		{
-			name: "InternalError",
+			name: "InternalError",  // 500
 			accountID: account.ID,
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -54,14 +62,20 @@ func TestAccountAPI(t *testing.T) {
 					Times(1).
 					Return(db.Account{}, sql.ErrConnDone)
 			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
 		},
 		{
-			name: "InvalidID",
+			name: "InvalidID",  // 400
 			accountID: 0,
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetAccount(gomock.Any(), gomock.Eq(account.ID)).
 					Times(1)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
 	}
@@ -89,8 +103,7 @@ func TestAccountAPI(t *testing.T) {
 
 			server.router.ServeHTTP(recorder, request)
 			// check response
-			require.Equal(t, http.StatusOK, recorder.Code)
-			requireBodyMatchAccount(t, recorder.Body, account)
+			tc.checkResponse(t, recorder)
 		})
 	}
 }
