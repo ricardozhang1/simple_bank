@@ -31,7 +31,6 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		store: store,
 		tokenMaker: tokenMaker,
 	}
-	router := gin.Default()
 
 	// currency注册验证器
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
@@ -41,17 +40,23 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		}
 	}
 
-	// TODO：将这部分路由设置抽离出来
-	router.POST("/accounts", server.createAccount)
-	router.GET("/accounts/:id", server.getAccount)
-	router.GET("/accounts", server.listAccount)
-	router.POST("/transfers", server.createTransfer)
+	server.setupRouter()
+	return server, nil
+}
+
+func (server *Server) setupRouter()  {
+	router := gin.Default()
+
+	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
+	authRouter.POST("/accounts", server.createAccount)
+	authRouter.GET("/accounts/:id", server.getAccount)
+	authRouter.GET("/accounts", server.listAccount)
+	authRouter.POST("/transfers", server.createTransfer)
 
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
 
 	server.router = router
-	return server, nil
 }
 
 // Start run the HTTP server on a specific address.

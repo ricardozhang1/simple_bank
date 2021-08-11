@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	db "github.com/techschool/simplebank/db/sqlc"
+	"github.com/techschool/simplebank/token"
 	"log"
 	"net/http"
 )
@@ -21,12 +22,15 @@ func (server *Server) createAccount(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+	// 加入权限验证的部分
+	authPayload := ctx.MustGet(authorizationHeaderKey).(*token.Payload)
 	// 对请求传递过的数据进行进一步加工处理
 	arg := db.CreateAccountParams{
-		Owner: req.Owner,
+		Owner: authPayload.Username,
 		Balance: 0,
 		Currency: req.Currency,
 	}
+
 	// 调用db包的方法，数据库插入数据
 	account, err := server.store.CreateAccount(ctx, arg)
 	if err != nil {
